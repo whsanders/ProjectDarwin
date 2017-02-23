@@ -12,6 +12,10 @@ https://developer3.oculus.com/documentation/game-engines/latest/concepts/unity-t
 This page has a few common prefab instantiation examples
 https://docs.unity3d.com/Manual/InstantiatingPrefabs.html
 
+Other VR Stuff
+https://docs.unity3d.com/Manual/VROverview.html
+
+Other Genetic Stuff
 https://en.wikipedia.org/wiki/Gene
 
 Research Papers
