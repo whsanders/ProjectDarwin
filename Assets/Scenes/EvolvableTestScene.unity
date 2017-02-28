@@ -1203,9 +1203,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7362a40e062e59c40abbd87f2005655c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  vert: 0
-  horiz: 0
   panSpeed: 25
+  edgeStickiness: 0.2
+  bindToGroundArea: {fileID: 464537106}
+  area:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 0
+    height: 0
 --- !u!1 &1846563792
 GameObject:
   m_ObjectHideFlags: 0
