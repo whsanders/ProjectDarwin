@@ -18,7 +18,7 @@ public class GroundArea : MonoBehaviour {
 		
 	}
 
-    private void InstantiateTiles()
+    public void InstantiateTiles()
     {
         // For now this is extremely simple, it lays tiles in a plane, using its parent's transform and overtiling (overflowing borders) if they don't line up
 
