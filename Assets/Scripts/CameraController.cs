@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class CameraController : MonoBehaviour {
 
-    private Camera camera;
+    private Camera playerCamera;
     public float panSpeed = 1.0f;
     public float edgeStickiness = 0.2f;
     public GroundArea bindToGroundArea;
@@ -13,8 +13,8 @@ public class CameraController : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
-        camera = GetComponent<Camera>();
-        if (camera == null) Debug.LogError("CameraController must have a Camera!");
+        playerCamera = GetComponent<Camera>();
+        if (playerCamera == null) Debug.LogError("CameraController must have a Camera!");
         offset = new Vector3(0.0f, 0.0f, transform.position.z);
         if (bindToGroundArea != null)
         {

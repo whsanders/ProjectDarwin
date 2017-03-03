@@ -72,6 +72,7 @@ public class GameManager : MonoBehaviour {
             file.Close();
             Debug.Log("Read file contents: " + s);
             SaveData data = JsonUtility.FromJson<SaveData>(s);
+            Debug.Log("Deserialized aNumber=" + data.aNumber + ", aString=\"" + data.aString + "\", aFloatArray.Length=" + data.aFloatArray.Length);
         }
     }
 }
