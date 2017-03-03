@@ -13,9 +13,6 @@ public class GroundArea : MonoBehaviour {
         InstantiateTiles();
 	}
 	
-	private void OnDrawGizmos () {
-        DrawAreaBox(Color.Lerp(Color.gray, Color.white, 0.7f));
-    }
     private void OnDrawGizmosSelected()
     {
         DrawAreaBox(Color.Lerp(Color.gray, Color.white, 0.8f));
@@ -23,7 +20,7 @@ public class GroundArea : MonoBehaviour {
     private void DrawAreaBox(Color color)
     {
         Gizmos.color = color;
-        Gizmos.DrawCube(transform.position, new Vector3(areaSize.x, 0.1f, areaSize.y));
+        Gizmos.DrawWireCube(transform.position, new Vector3(areaSize.x, 0.1f, areaSize.y));
     }
 
     public void InstantiateTiles()
