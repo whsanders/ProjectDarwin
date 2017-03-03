@@ -31,6 +31,10 @@ public class Genome {
         {
             return genome[position];
         }
+        set
+        {
+            genome[position] = value;
+        }
     }
 
     public int Length

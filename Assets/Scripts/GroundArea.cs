@@ -9,14 +9,22 @@ public class GroundArea : MonoBehaviour {
     public GameObject tile;
 
 	// Use this for initialization
-	void Start () {
+	private void Start () {
         InstantiateTiles();
 	}
 	
-	// Update is called once per frame
-	void Update () {
-		
-	}
+	private void OnDrawGizmos () {
+        DrawAreaBox(Color.Lerp(Color.gray, Color.white, 0.7f));
+    }
+    private void OnDrawGizmosSelected()
+    {
+        DrawAreaBox(Color.Lerp(Color.gray, Color.white, 0.8f));
+    }
+    private void DrawAreaBox(Color color)
+    {
+        Gizmos.color = color;
+        Gizmos.DrawCube(transform.position, new Vector3(areaSize.x, 0.1f, areaSize.y));
+    }
 
     public void InstantiateTiles()
     {
