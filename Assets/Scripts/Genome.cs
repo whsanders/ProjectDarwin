@@ -5,10 +5,12 @@ using UnityEngine;
 public class Genome {
 
     private float[] genome;
+    private float[] sigma;
 
     public Genome(int length)
     {
         this.genome = new float[length];
+        this.sigma = new float[length];
     }
 
     public void Randomize()
@@ -22,6 +24,31 @@ public class Genome {
         for (int i = 0; i < genome.Length; i++)
         {
             genome[i] = Random.Range(0.0f, 1.0f);
+            sigma[i] = Random.Range(0.0f, 1.0f);
+        }
+    }
+
+    // Mutation here is performed on both the genome and strategy parameters, following Baeck, et al. (1992)
+    public void Mutate()
+    {
+        float tau = 1.0f / Mathf.Sqrt(2.0f * this.Length);
+        float commonScalingFactor = Mathf.Exp(Random.Range(-tau, tau));
+
+        float tauPrime = 1.0f / Mathf.Sqrt(2.0f * Mathf.Sqrt(this.Length));  // Used for individual scaling factors below
+        for (int i = 0; i < this.Length; i++)
+        {
+            float individualScalingFactor = Mathf.Exp(Random.Range(-tauPrime, tauPrime));
+
+            // mutate strategy param
+            float sigmaPrime = sigma[i] * individualScalingFactor * commonScalingFactor;
+            sigmaPrime = (sigmaPrime < 0.0f ? 0.0f : (sigmaPrime > 1.0f ? 1.0f : sigmaPrime));  // Clamp to range
+
+            // mutate gene
+            float genePrime = genome[i] + Random.Range(-sigmaPrime, sigmaPrime);
+            genePrime = (genePrime < 0.0f ? 0.0f : (genePrime > 1.0f ? 1.0f : genePrime));  // Clamp to range
+
+            genome[i] = genePrime;
+            sigma[i] = sigmaPrime;
         }
     }
 
