@@ -8,20 +8,22 @@ public class EvolvableSpawner : MonoBehaviour {
     public float elapsedDeltaTime;
     public float howOftenToSpawn;
     public Evolvable thingToSpawn;
-    public float lastSpawnTime;
+    public float lastSpawnCheck;
     public float velocityVariance = 0.001f;
     public string status;
     public Vector3 lastAppliedVelocity;
-    public int genomeSize = 8;
+    public int genomeSize = 3;
     public int reportsReceived;
     public float cumulativeFitnessReported;
-    public int populationSize = 15;
-    private List<FitnessReport> fitnessReports;
-    public float fitnessReportExpiry;
+    public int populationMu = 20;  // minimum parents to begin recombination
+    public int populationLambda = 100;  // max size of a generation
+    public bool waitForWholeGeneration = false;
+    public int currentGeneration = 0;
+    private Dictionary<int, List<FitnessReport>> fitnessReportsByGeneration;
     public int reportsOnFile;
-    public int randomGenomesCreated;
-    public int derivedGenomesCreated;
-    public float mutationPercent = 5.0f;
+    private Dictionary<int, int> genomesCreatedByGeneration;
+    public float mutationRate = 0.20f;
+    public float spontaneousGenerationRate = 0.05f;
 
     // Use this for initialization
     void Start()
@@ -29,15 +31,18 @@ public class EvolvableSpawner : MonoBehaviour {
         spawnCount = 0;
         reportsReceived = 0;
         cumulativeFitnessReported = 0.0f;
-        randomGenomesCreated = 0;
-        derivedGenomesCreated = 0;
+        genomesCreatedByGeneration = new Dictionary<int, int>();
+        fitnessReportsByGeneration = new Dictionary<int, List<FitnessReport>>();
+        currentGeneration = 0;
+        InitializeGeneration(currentGeneration);
         elapsedDeltaTime = 0.0f;
         reportsOnFile = 0;
-        lastSpawnTime = elapsedDeltaTime;
+        lastSpawnCheck = elapsedDeltaTime;
         if (velocityVariance < 0) velocityVariance = -velocityVariance;
-        fitnessReports = new List<FitnessReport>();
-        if (mutationPercent < 0.0f) mutationPercent = 0.0f;
-        if (mutationPercent > 100.0f) mutationPercent = 100.0f;
+        if (mutationRate < 0.0f) mutationRate = 0.0f;
+        if (mutationRate > 1.0f) mutationRate = 1.0f;
+        if (spontaneousGenerationRate < 0.0f) spontaneousGenerationRate = 0.0f;
+        if (spontaneousGenerationRate > 1.0f) spontaneousGenerationRate = 1.0f;
     }
 
     // Update is called once per frame
@@ -45,65 +50,107 @@ public class EvolvableSpawner : MonoBehaviour {
     {
         float dt = Time.deltaTime;
         elapsedDeltaTime += dt;
-        if (elapsedDeltaTime > lastSpawnTime + howOftenToSpawn)
+        if (elapsedDeltaTime > lastSpawnCheck + howOftenToSpawn)
         {
-            spawnCount++;
-            lastSpawnTime = elapsedDeltaTime;
-            Vector3 velocity = new Vector3(
-                Random.Range(-velocityVariance, velocityVariance),
-                Random.Range(-velocityVariance, velocityVariance),
-                Random.Range(-velocityVariance, velocityVariance)
-            );
-            Evolvable obj = Instantiate<Evolvable>(thingToSpawn, transform.position, transform.rotation);
-            lastAppliedVelocity = velocity;
-            obj.GetComponent<Rigidbody>().AddForce(velocity, ForceMode.VelocityChange);
-            obj.name = "Creature" + spawnCount.ToString();
-            obj.genome = GenerateGenome();
-            obj.reportTo = this;
+            lastSpawnCheck = elapsedDeltaTime;
+            if (CurrentGenerationCanSpawn())
+            {
+                spawnCount++;
+                Vector3 velocity = new Vector3(
+                    Random.Range(-velocityVariance, velocityVariance),
+                    Random.Range(-velocityVariance, velocityVariance),
+                    Random.Range(-velocityVariance, velocityVariance)
+                );
+                Evolvable obj = Instantiate<Evolvable>(thingToSpawn, transform.position, transform.rotation);
+                lastAppliedVelocity = velocity;
+                obj.GetComponent<Rigidbody>().AddForce(velocity, ForceMode.VelocityChange);
+                obj.name = "Creature" + spawnCount.ToString();
+                obj.genome = GenerateGenome();
+                obj.generation = currentGeneration;
+                obj.maxAge = howOftenToSpawn * populationMu;
+                obj.reportTo = this;
+            } else
+            {
+                CheckAndCloseGeneration();
+            }
         }
-        reportsOnFile = fitnessReports.Count;
+        reportsOnFile = CountFitnessReports();
     }
 
-    private float[] GenerateGenome()
+    private void InitializeGeneration(int generation)
     {
-        float[] genome = new float[genomeSize];
-        if (fitnessReports.Count < populationSize)
-        {
-            randomGenomesCreated++;
-            for (int i = 0; i < genome.Length; i++)
-            {
-                genome[i] = Random.Range(-1000.0f, 1000.0f);
-            }
-        } else
-        {
-            derivedGenomesCreated++;
-            float[] mom = SelectParent().genome;
-            float[] dad = SelectParent().genome;
+        currentGeneration = generation;
+        genomesCreatedByGeneration[currentGeneration] = 0;
+        fitnessReportsByGeneration[currentGeneration] = new List<FitnessReport>();
+    }
 
-            for (int i = 0; i < genome.Length; i++)
+    private bool CurrentGenerationCanSpawn()
+    {
+        return
+            genomesCreatedByGeneration[currentGeneration] < populationLambda
+            && (
+                currentGeneration == 0
+                || (
+                    waitForWholeGeneration && fitnessReportsByGeneration[currentGeneration - 1].Count >= genomesCreatedByGeneration[currentGeneration - 1]
+                    || !waitForWholeGeneration && fitnessReportsByGeneration[currentGeneration - 1].Count >= populationMu
+                )
+            );
+    }
+
+    private void CheckAndCloseGeneration()
+    {
+        if (genomesCreatedByGeneration[currentGeneration] >= populationLambda)
+        {
+            InitializeGeneration(currentGeneration + 1);
+        }
+    }
+
+    private Genome GenerateGenome()
+    {
+        Genome genome;
+
+        if (currentGeneration == 0 || Random.Range(0.0f, 1.0f) <= spontaneousGenerationRate)
+        {
+            genome = new Genome(genomeSize);
+            genome.Randomize();
+        }
+        else
+        {
+            Genome mom = SelectOneWeightedByFitness(currentGeneration - 1).genome;
+            Genome dad = SelectOneWeightedByFitness(currentGeneration - 1).genome;
+
+            genome = Genome.Recombine(mom, dad);
+
+            if (Random.Range(0.0f, 1.0f) <= mutationRate)
             {
-                float fromMom = (i < mom.Length) ? mom[i] : Random.Range(-1000.0f, 1000.0f);
-                float fromDad = (i < dad.Length) ? dad[i] : Random.Range(-1000.0f, 1000.0f);
-                if (Random.Range(0, 2) == 0) genome[i] = fromMom; else genome[i] = fromDad;
-                if (Random.Range(0.0f, 100.0f) <= mutationPercent)
-                {
-                    genome[i] = Random.Range(-1000.0f, 1000.0f);
-                }
+                genome.Mutate();
             }
         }
+
+        genomesCreatedByGeneration[currentGeneration] = genomesCreatedByGeneration[currentGeneration] + 1;
         return genome;
     }
 
-    public void ReportFitness(float fitness, float[] genome)
+    private int CountFitnessReports()
+    {
+        int reports = 0;
+        foreach (int key in fitnessReportsByGeneration.Keys)
+        {
+            reports += fitnessReportsByGeneration[key].Count;
+        }
+        return reports;
+    }
+
+    public void ReportFitness(int generation, float fitness, Genome genome)
     {
         reportsReceived++;
         cumulativeFitnessReported += fitness;
-        fitnessReports.Add(new FitnessReport { fitness = fitness, genome = genome, timestamp = elapsedDeltaTime });
+        fitnessReportsByGeneration[generation].Add(new FitnessReport { fitness = fitness, genome = genome, timestamp = elapsedDeltaTime });
     }
 
-    private FitnessReport SelectParent()
+    private FitnessReport SelectOneWeightedByFitness(int generation)
     {
-        FitnessReport[] pool = GetMostFit(populationSize);
+        FitnessReport[] pool = GetParentCandidatePool(generation);
 
         Dictionary<float, FitnessReport> topOfRange = new Dictionary<float, FitnessReport>(pool.Length);
         float tally = 0.0f;
@@ -121,34 +168,44 @@ public class EvolvableSpawner : MonoBehaviour {
         return pool[0];
     }
 
-    private FitnessReport[] GetMostFit(int howMany)
+    private FitnessReport[] GetParentCandidatePool(int generation)
     {
-        fitnessReports.Sort(FitnessReport.comparer);
-        FitnessReport[] top = new FitnessReport[howMany];
-        List<FitnessReport> toDelete = new List<FitnessReport>();
-        int copied = 0;
-        foreach (FitnessReport report in fitnessReports)
+        if (waitForWholeGeneration)
         {
-            if (fitnessReportExpiry > 0.0001f && (report.timestamp + fitnessReportExpiry < elapsedDeltaTime))
-            {
-                toDelete.Add(report);
-                continue;
-            }
-            if (copied >= howMany) continue;
+            return GetGenerationReportsSorted(generation);
+        } else
+        {
+            return GetMostFit(generation, populationMu);
+        }
+    }
+
+    private FitnessReport[] GetGenerationReportsSorted(int generation)
+    {
+        List<FitnessReport> reports = fitnessReportsByGeneration[generation];
+        reports.Sort(FitnessReport.comparer);
+        return reports.ToArray();
+    }
+
+    private FitnessReport[] GetMostFit(int generation, int howMany)
+    {
+        FitnessReport[] all = GetGenerationReportsSorted(generation);
+
+        FitnessReport[] top = new FitnessReport[howMany];
+        int copied = 0;
+        foreach (FitnessReport report in all)
+        {
+            if (copied >= howMany) break;
             top[copied] = report;
             copied++;
         }
-        foreach (FitnessReport old in toDelete)
-        {
-            fitnessReports.Remove(old);
-        }
+
         return top;
     }
 
     class FitnessReport
     {
         public float fitness;
-        public float[] genome;
+        public Genome genome;
         public float timestamp;
         public static Comparer comparer = new Comparer();
 

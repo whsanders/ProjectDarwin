@@ -109,8 +109,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b8c56cc8c21ac8c4183ad29756dedce4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  genome: []
-  activeGenes: 0
+  generation: 0
   reportTo: {fileID: 0}
   age: 0
   ageFitnessMultiplier: 1
@@ -126,6 +125,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4267327b3b6b6404a8df9cf8ee240250, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  maxKickEachAxis: 20
 --- !u!135 &135567676051468288
 SphereCollider:
   m_ObjectHideFlags: 1

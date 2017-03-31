@@ -5,6 +5,7 @@ using UnityEngine;
 public class CreatureController : MonoBehaviour {
 
     private Rigidbody rb;
+    public float maxKickEachAxis = 20.0f;
 
 	// Use this for initialization
 	void Start () {
@@ -13,11 +14,11 @@ public class CreatureController : MonoBehaviour {
         Evolvable ev = GetComponent<Evolvable>();
         if (ev != null)
         {
-            float[] genome = ev.genome;
+            float[] genes = ev.genome.Read();
             Vector3 selfKick = new Vector3();
-            if (genome.Length > 0) selfKick.x = genome[0] / 50.0f;
-            if (genome.Length > 1) selfKick.y = genome[1] / 50.0f;
-            if (genome.Length > 2) selfKick.z = genome[2] / 50.0f;
+            if (genes.Length > 0) selfKick.x = (genes[0] - 0.5f) * 2.0f * maxKickEachAxis;
+            if (genes.Length > 1) selfKick.y = (genes[1] - 0.5f) * 2.0f * maxKickEachAxis;
+            if (genes.Length > 2) selfKick.z = (genes[2] - 0.5f) * 2.0f * maxKickEachAxis;
             rb.velocity = rb.velocity + selfKick;
         }
 	}

@@ -394,19 +394,20 @@ MonoBehaviour:
   howOftenToSpawn: 0.2
   thingToSpawn: {fileID: 114060710991864804, guid: 8f3d8018ece34d342ac6c0a68e3c917e,
     type: 2}
-  lastSpawnTime: 0
+  lastSpawnCheck: 0
   velocityVariance: 0.001
   status: 
   lastAppliedVelocity: {x: 0, y: 0, z: 0}
   genomeSize: 3
   reportsReceived: 0
   cumulativeFitnessReported: 0
-  populationSize: 15
-  fitnessReportExpiry: 60
+  populationMu: 10
+  populationLambda: 50
+  waitForWholeGeneration: 0
+  currentGeneration: 0
   reportsOnFile: 0
-  randomGenomesCreated: 0
-  derivedGenomesCreated: 0
-  mutationPercent: 5
+  mutationRate: 0.2
+  spontaneousGenerationRate: 0
 --- !u!1001 &736168948
 Prefab:
   m_ObjectHideFlags: 0

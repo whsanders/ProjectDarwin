@@ -28,6 +28,15 @@ public class Genome {
         }
     }
 
+    public static Genome Recombine(Genome mother, Genome father)
+    {
+        //HACK: return clone of mother for now
+        Genome child = new Genome(mother.Length);
+        mother.genome.CopyTo(child.genome, 0);
+        mother.sigma.CopyTo(child.sigma, 0);
+        return child;
+    }
+
     // Mutation here is performed on both the genome and strategy parameters, following Baeck, et al. (1992)
     public void Mutate()
     {

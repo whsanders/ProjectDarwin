@@ -4,10 +4,15 @@ using UnityEngine;
 
 public class Evolvable : MonoBehaviour {
 
+    //FIXME: should individuals "know" their own fitness? should probably be in eye of observer
     public Dictionary<string, float> fitness;
-    public float[] genome;
-    public int activeGenes;
+
+    public Genome genome;
+    public int generation;
+
+    //FIXME: spawner shouldn't know about genes, only available material and maybe some pop knowledge
     public EvolvableSpawner reportTo;
+
     public float age;
     public float ageFitnessMultiplier = 1.0f;
     public float maxAge = 30.0f;
@@ -33,7 +38,7 @@ public class Evolvable : MonoBehaviour {
             foreach (KeyValuePair<string, float> factor in fitness) {
                 totalFitness += factor.Value;
             }
-            reportTo.ReportFitness(totalFitness, genome);
+            reportTo.ReportFitness(generation, totalFitness, genome);
         }
     }
 }
