@@ -30,10 +30,147 @@ public class Genome {
 
     public static Genome Recombine(Genome mother, Genome father)
     {
-        //HACK: return clone of mother for now
-        Genome child = new Genome(mother.Length);
-        mother.genome.CopyTo(child.genome, 0);
-        mother.sigma.CopyTo(child.sigma, 0);
+        return Recombine(mother, father, RecombinationMethod.Discrete);
+    }
+
+    public static Genome Recombine(Genome mother, Genome father, RecombinationMethod method)
+    {
+        RecombinationMethod sigmaMethod = RecombinationMethod.Intermediate;
+        if (method == RecombinationMethod.Crossover)
+        {
+            // Do we want to default to something else for sigmas here?
+        }
+        return Recombine(mother, father, method, sigmaMethod);
+    }
+
+    public static Genome Recombine(Genome mother, Genome father, RecombinationMethod method, RecombinationMethod sigmaMethod)
+    {
+        // This could get a little messy; to keep things simpler we pick a length for the child genome and calculate a 
+        //     crossover point (which may never be used) up front, then take a best effort approach within them. A side 
+        //     effect of this is that any selection bias between mother and father in the upstream logic could lead to 
+        //     uneven results here. This may be desired in some cases; if so, see comments in the individual switch cases 
+        //     below for the precise behaviors.
+        int commonLength = Mathf.Min(mother.Length, father.Length);
+        int childLength = method == RecombinationMethod.Crossover ? father.Length : mother.Length;
+        int crossoverPoint = Random.Range(0, Mathf.Min(mother.Length, father.Length));
+
+        Genome child = new Genome(childLength);
+        for (int i = 0; i < child.Length; i++)
+        {
+            switch (method)
+            {
+                case RecombinationMethod.Crossover:
+                    // Crossover is always from mother to father, never the reverse. However, crossover can happen at 0, 
+                    //     meaning this will (rarely) produce a direct copy of the father.
+                    if (i < crossoverPoint)
+                    {
+                        child.genome[i] = mother.genome[i];
+                    } else
+                    {
+                        child.genome[i] = father.genome[i];
+                    }
+                    break;
+                case RecombinationMethod.Discrete:
+                    // Discrete takes one or the other value randomly from the parent(s) which have values at the current 
+                    //     position. Child's length is always equal to mother's length, so we only need to check against 
+                    //     the father.
+                    if (i < father.Length)
+                    {
+                        child.genome[i] = Random.Range(0, 2) == 0 ? mother.genome[i] : father.genome[i];
+                    } else
+                    {
+                        child.genome[i] = mother[i];
+                    }
+                    break;
+                case RecombinationMethod.Fixed:
+                    // Fixed produces a direct copy of the mother.
+                    child.genome[i] = mother.genome[i];
+                    break;
+                case RecombinationMethod.Intermediate:
+                    // Intermediate takes a value between the two parent values; if only one parent has a value at the 
+                    //     current position, that value is used instead. Child's length is always equal to mother's, so 
+                    //     only the father must be checked.
+                    if (i < father.Length)
+                    {
+                        float smaller = Mathf.Min(mother.genome[i], father.genome[i]);
+                        float larger = Mathf.Max(mother.genome[i], father.genome[i]);
+                        if (smaller == larger)
+                        {
+                            child.genome[i] = smaller;
+                        } else
+                        {
+                            child.genome[i] = Random.Range(smaller, larger);
+                        }
+                    } else
+                    {
+                        child.genome[i] = mother.genome[i];
+                    }
+                    break;
+                default:
+                    throw new System.InvalidOperationException("RecombinationMethod not supported: " + method.ToString());
+            }
+            switch (sigmaMethod)
+            {
+                // These behave exactly the same as above, but we have to be a little more careful with length checking, 
+                //     since child length is based on the primary recombination method, not this one.
+                case RecombinationMethod.Crossover:
+                    if (i < crossoverPoint)
+                    {
+                        child.sigma[i] = mother.sigma[i];
+                    } else if (i < father.Length)
+                    {
+                        child.sigma[i] = father.sigma[i];
+                    } else
+                    {
+                        // This is a weird case, implying we're doing crossover of the sigmas but not the genome itself, 
+                        //     but hey whatever you want maaaan. Probably best to just "cross back" to the mother, here.
+                        child.sigma[i] = mother.sigma[i];
+                    }
+                    break;
+                case RecombinationMethod.Discrete:
+                    float[] candidates = new float[2];
+                    int count = 0;
+                    if (i < mother.Length) candidates[count++] = mother.sigma[i];
+                    if (i < father.Length) candidates[count++] = father.sigma[i];
+                    child.sigma[i] = candidates[Random.Range(0, count)];
+                    break;
+                case RecombinationMethod.Fixed:
+                    if (i < mother.Length)
+                    {
+                        child.sigma[i] = mother.sigma[i];
+                    } else
+                    {
+                        // A bit strange perhaps, but just use father's. If this throws an exception the upstream logic 
+                        //     has a Bad Problem(tm).
+                        child.sigma[i] = father.sigma[i];
+                    }
+                    break;
+                case RecombinationMethod.Intermediate:
+                    if (i < commonLength)
+                    {
+                        float smaller = Mathf.Min(mother.sigma[i], father.sigma[i]);
+                        float larger = Mathf.Max(mother.sigma[i], father.sigma[i]);
+                        if (smaller == larger)
+                        {
+                            child.sigma[i] = smaller;
+                        }
+                        else
+                        {
+                            child.sigma[i] = Random.Range(smaller, larger);
+                        }
+                    }
+                    else if (i < mother.Length)
+                    {
+                        child.sigma[i] = mother.sigma[i];
+                    } else
+                    {
+                        child.sigma[i] = father.sigma[i];
+                    }
+                    break;
+                default:
+                    throw new System.InvalidOperationException("RecombinationMethod not supported: " + sigmaMethod.ToString());
+            }
+        }
         return child;
     }
 
@@ -255,4 +392,12 @@ public struct GenomeSection
         }
         return genes;
     }
+}
+
+public enum RecombinationMethod
+{
+    Crossover,
+    Discrete,
+    Fixed,
+    Intermediate
 }

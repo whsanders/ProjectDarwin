@@ -401,12 +401,12 @@ MonoBehaviour:
   genomeSize: 3
   reportsReceived: 0
   cumulativeFitnessReported: 0
-  populationMu: 10
-  populationLambda: 50
-  waitForWholeGeneration: 0
+  populationMu: 40
+  populationLambda: 40
+  waitForWholeGeneration: 1
   currentGeneration: 0
   reportsOnFile: 0
-  mutationRate: 0.2
+  mutationRate: 0.95
   spontaneousGenerationRate: 0
 --- !u!1001 &736168948
 Prefab:
